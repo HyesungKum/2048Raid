@@ -1,0 +1,14 @@
+## 스트링데이터 테이블(엑셀)을 패킹하기 위한 파일들
+GameStringDataFileList.txt - 스트링이 포함되어 있는 엑셀파일들
+GenerateStringCode.bat - 스트링을 읽어들이는 C# 코드를 생성하는 배치파일
+GameDataPack-String.bat - 스트링데이터를 패킹하는 배치파일
+
+
+
+## 게임데이터 테이블(엑셀)을 패킹하기 위한 파일들
+GameDataFileList.txt - 게임데이터 파일들(엑셀 파일들)
+GameDataPack.bat - 게임데이터를 하나의 파일로 패킹하는 배치파일
+GenerateCode.bat - 게임데이터를 읽어 들이는 코드를 생성하는 배치파일
+
+TemplateDataMgr.txt - 게임데이터를 바탕으로 DataMgr 클래스를 구성하기 위해서 사용된 파일들
+GenerateDataMgrCode.bat - DataMgr 를 위 파일에서 지정한 것들로 구성하는 배치 파일
