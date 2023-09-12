@@ -70,3 +70,6 @@ crashlytics-build.properties
 # Temporary auto-generated Android Assets
 /[Aa]ssets/[Ss]treamingAssets/aa.meta
 /[Aa]ssets/[Ss]treamingAssets/aa/*
+/Program/Client/2048Raid/Library
+/Program/Client/2048Raid/Logs
+/Program/Client/2048Raid/obj
