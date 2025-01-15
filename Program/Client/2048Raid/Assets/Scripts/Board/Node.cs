@@ -64,7 +64,7 @@ public class Node : MonoBehaviour
     }
 
     /// <summary>
-    /// 노드에 유닛 들어옴
+    /// 노드에 유닛 들어옴 유닛에게도 참조 정보 전달
     /// </summary>
     /// <param name="targetUnit">목표 유닛</param>
     public void AddUnit(Unit targetUnit)
@@ -73,6 +73,7 @@ public class Node : MonoBehaviour
         inCount++;
         //참조
         RefUnit = targetUnit;
+        RefUnit.RefNode = this;
     }
 
     /// <summary>
@@ -80,6 +81,18 @@ public class Node : MonoBehaviour
     /// </summary>
     public void UnitClear()
     {
+        //상태 초기화
+        inCount = 0;
+        RefUnit = null;
+    }
+
+    /// <summary>
+    /// 안에 들어있는 유닛만 제거
+    /// </summary>
+    public void UnitDelete()
+    {
+        RefUnit.RefNode = null;
+        DestroyImmediate(RefUnit.gameObject);
         //상태 초기화
         inCount = 0;
         RefUnit = null;

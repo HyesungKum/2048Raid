@@ -25,6 +25,7 @@ public enum BOARDSTATE
     BUFF,
     DEBUFF,
     INTERECT,
+    RALLY,
     BOSSTURN,
     REINFORCE,
     BUSTCHECK,
@@ -62,9 +63,19 @@ public class Board : MonoBehaviour
 {
     public Node[,] AllNodes = null;
     private List<Node> emptyNodes = new();
+
+    private Node[] RstartNodes = new Node[4];
+    private Node[] LstartNodes = new Node[4];
+    private Node[] UstartNodes = new Node[4];
+    private Node[] DstartNodes = new Node[4];
+
+    private Node[] TempNodes = new Node[4];
+
     private List<Unit> lineInfos = new();
     private List<CombinePack> combinePacks = new();
-    private int contorlledUnitCount = 0;
+
+    [SerializeField]private int contorlledMovingUnitCount = 0;
+    [SerializeField] private int contorlledInterUnitCount = 0;
 
     [Header("노드 부모 지정")]
     [SerializeField] Transform nodeGroup = null;
@@ -75,6 +86,7 @@ public class Board : MonoBehaviour
 
     [Header("[보드 상태]")]
     [SerializeField] private BOARDSTATE curState;
+    [SerializeField] private DIR dirOrdered;
     [Space]
     public int CurFood = 0;
     public int MaxFood = 10;
@@ -115,7 +127,8 @@ public class Board : MonoBehaviour
         IsFull = false;
         CurFood = 2;
         MaxFood = 10;
-        contorlledUnitCount = 0;
+        contorlledMovingUnitCount = 0;
+        contorlledInterUnitCount = 0;
         enemyApproachCount = 3;
 
         //보드 시작
@@ -170,6 +183,14 @@ public class Board : MonoBehaviour
             }
         }
 
+        for (int i = 0; i < Size; i++)
+        {
+            LstartNodes[i] = AllNodes[i, Size - 1];
+            RstartNodes[i] = AllNodes[i, 0];
+            UstartNodes[i] = AllNodes[0, i];
+            DstartNodes[i] = AllNodes[Size - 1, i];
+        }
+
         //셋팅 변수 적용
         IsSetted = true;
     }
@@ -184,6 +205,9 @@ public class Board : MonoBehaviour
     /// <param name="direction">목표 방향</param>
     public void MoveOrder(DIR direction)
     {
+        //방향 명령 저장
+        dirOrdered = direction;
+
         //한줄씩 검사 시작
         for (int i = 0; i < Size; i++)
         {
@@ -330,6 +354,7 @@ public class Board : MonoBehaviour
 
         //유닛 이벤트 연결
         NewUnit.MoveDone = reactMove;
+        NewUnit.InterDone = reactInter; 
     }
 
     //====================================================================================
@@ -369,24 +394,9 @@ public class Board : MonoBehaviour
     {
         while (true)
         {
-            if (Input.GetKeyDown(KeyCode.A))
+            if (TouchMgr.Inst.GetDragUp(out DIR dir))
             {
-                MoveOrder(DIR.LEFT);
-                changeState(BOARDSTATE.MOVING);
-            }
-            if (Input.GetKeyDown(KeyCode.D))
-            {
-                MoveOrder(DIR.RIGHT);
-                changeState(BOARDSTATE.MOVING);
-            }
-            if (Input.GetKeyDown(KeyCode.W))
-            {
-                MoveOrder(DIR.UP);
-                changeState(BOARDSTATE.MOVING);
-            }
-            if (Input.GetKeyDown(KeyCode.S))
-            {
-                MoveOrder(DIR.DOWN);
+                MoveOrder(dir);
                 changeState(BOARDSTATE.MOVING);
             }
             yield return null;
@@ -404,7 +414,7 @@ public class Board : MonoBehaviour
         do
         {
             yield return null;
-        } while (contorlledUnitCount != 0);
+        } while (contorlledMovingUnitCount != 0);
 
         changeState(BOARDSTATE.COMBINE);
     }
@@ -440,6 +450,113 @@ public class Board : MonoBehaviour
     {
         yield return null;
 
+        contorlledInterUnitCount = 0;
+
+        //검사 노드를 레퍼런스에서 복사 후 사용
+        switch (dirOrdered)
+        {
+            case DIR.RIGHT:
+                {
+                    for (int i = 0; i < Size; i++)
+                    {
+                        TempNodes[i] = LstartNodes[i];
+                    }
+                } break;
+            case DIR.LEFT:
+                {
+                    for (int i = 0; i < Size; i++)
+                    {
+                        TempNodes[i] = RstartNodes[i];
+                    }
+                } break;
+            case DIR.UP:
+                {
+                    for (int i = 0; i < Size; i++)
+                    {
+                        TempNodes[i] = UstartNodes[i];
+                    }
+                } break;
+            case DIR.DOWN:
+                {
+                    for (int i = 0; i < Size; i++)
+                    {
+                        TempNodes[i] = DstartNodes[i];
+                    }
+                } break;
+        }
+
+        do
+        {
+            for (int i = 0; i < Size; i++)
+            {
+                Node node = TempNodes[i];
+
+                //현제 노드에 동작 가능한 유닛없다면 넘기기
+                if (node.RefUnit == null) continue;
+
+                //다음 노드가 없다면 넘기기
+                Node nextNode = null;
+                switch (dirOrdered)
+                {
+                    case DIR.RIGHT: nextNode = node.RNode; break;
+                    case DIR.LEFT: nextNode = node.LNode; break;
+                    case DIR.UP: nextNode = node.UNode; break;
+                    case DIR.DOWN: nextNode = node.DNode; break;
+                }
+                if (nextNode == null) continue;
+
+                //유닛이 없다면 넘기기
+                if (nextNode.RefUnit == null) continue;
+
+                //상호작용
+                contorlledInterUnitCount++;
+                node.RefUnit.Interect(nextNode.RefUnit);
+            }
+
+            //관리되는 유닛 전부가 움직일 때 까지 대기
+            do
+            {
+                yield return null;
+            } while (contorlledInterUnitCount != 0);
+
+            //확인 노드 이동
+            for (int i = 0; i < Size; i++)
+            {
+                switch (dirOrdered)
+                {
+                    case DIR.RIGHT: TempNodes[i] = TempNodes[i].LNode; break;
+                    case DIR.LEFT: TempNodes[i] = TempNodes[i].RNode; break;
+                    case DIR.UP: TempNodes[i] = TempNodes[i].DNode; break;
+                    case DIR.DOWN: TempNodes[i] = TempNodes[i].UNode; break;
+                }
+            }
+
+        } while (TempNodes[0] != null);
+
+        changeState(BOARDSTATE.RALLY);
+    }
+
+    /// <summary>
+    /// 집결 시 동작
+    /// </summary>
+    /// <returns></returns>
+    private IEnumerator RALLYSTATE()
+    {
+        yield return null;
+
+        if (dirOrdered == DIR.DOWN)
+        {
+            foreach (Node node in AllNodes)
+            {
+                if (node.IsEmpty) continue;
+
+                if (node.RefUnit.unitTag.Equal(MAINTAG.ALLIY))
+                {
+                    node.RefUnit.Rally();
+                }
+            }
+        }
+
         changeState(BOARDSTATE.REINFORCE);
     }
 
@@ -455,12 +572,12 @@ public class Board : MonoBehaviour
         RequestReinforce();
 
         //관리 유닛 개수를 0으로 한 뒤
-        contorlledUnitCount = 0;
+        contorlledMovingUnitCount = 0;
 
         //새로이 관리되는 유닛 개수를 확인한다
         foreach (Node node in AllNodes)
         {
-            if (!node.IsEmpty) contorlledUnitCount++;
+            if (!node.IsEmpty) contorlledMovingUnitCount++;
         }
 
         changeState(BOARDSTATE.BUSTCHECK);
@@ -506,8 +623,17 @@ public class Board : MonoBehaviour
     /// </summary>
     private void reactMove()
     {
-        contorlledUnitCount--;
+        contorlledMovingUnitCount--;
     }
+
+    /// <summary>
+    /// 유닛들의 각 상호작용에 대응
+    /// </summary>
+    private void reactInter()
+    {
+        contorlledInterUnitCount--;
+    }
+
     private void foodCome()
     {
         if (CurFood > MaxFood - 3)

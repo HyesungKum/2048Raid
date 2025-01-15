@@ -6,6 +6,10 @@ public class UnitPicker : Singleton<UnitPicker>
     string baseUnitSprite = "Sprite/BaseUnit";
     string monsterSprite = "Sprite/RockMonster";
 
+    string alliyIcon = "Sprite/AlliyIcon";
+    string enemyIcon = "Sprite/EnemyIcon";
+    string bossIcon = "Sprite/BossIcon";
+
     /// <summary>
     /// 기본 증원 유닛을 생성하여 반환한다
     /// </summary>
@@ -17,12 +21,13 @@ public class UnitPicker : Singleton<UnitPicker>
         Unit newUnit = newUnitObj.GetComponent<Unit>();
 
         //태그 관리
-        newUnit.unitTag.ClearAllTag();
+        newUnit.unitTag.DeleteAllTag();
         newUnit.unitTag.Acquire(MAINTAG.ALLIY);
         newUnit.unitTag.Acquire(EXTAG.COMBINABLE);
 
         //값 세팅
-        newUnit.SetSprite(baseUnitSprite);
+        newUnit.SetObj(baseUnitSprite);
+        newUnit.SetIcon(alliyIcon);
         newUnit.SetValue(2);
         newUnit.SetHp(10);
 
@@ -42,11 +47,12 @@ public class UnitPicker : Singleton<UnitPicker>
         GameObject newUnitObj = PAObjectPoolSingleton.Inst.Spawn(baseUnitPath);
         Unit newUnit = newUnitObj.GetComponent<Unit>();
 
-        newUnit.unitTag.ClearAllTag();
+        newUnit.unitTag.DeleteAllTag();
         newUnit.unitTag.Acquire(MAINTAG.ENEMY);
 
         //값 세팅
-        newUnit.SetSprite(monsterSprite);
+        newUnit.SetObj(monsterSprite);
+        newUnit.SetIcon(enemyIcon);
         newUnit.SetValue(2);
         newUnit.SetHp(hp);
 
@@ -58,12 +64,12 @@ public class UnitPicker : Singleton<UnitPicker>
     /// </summary>
     /// <param name="tag">현재 유닛태그</param>
     /// <returns></returns>
-    public Sprite SpritePicker(UnitTag tag)
+    public GameObject ObjPicker(UnitTag tag)
     {
         switch (tag.GetMainTag)
         {
-            case MAINTAG.ALLIY: return Resources.Load<Sprite>(baseUnitSprite);
-            case MAINTAG.ENEMY: return Resources.Load<Sprite>(monsterSprite);
+            case MAINTAG.ALLIY: return Resources.Load<GameObject>(baseUnitSprite);
+            case MAINTAG.ENEMY: return Resources.Load<GameObject>(monsterSprite);
             default: return null;
         }
     }
